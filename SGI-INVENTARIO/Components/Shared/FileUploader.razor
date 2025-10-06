@@ -1,0 +1,37 @@
+<InputFile OnChange="OnChange" accept="application/pdf" />
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="text-danger">@ErrorMessage</div>
+}
+
+@code {
+    private const long MaxFileSize = 20 * 1024 * 1024;
+
+    [Parameter] public EventCallback<IBrowserFile> FileSelected { get; set; }
+    public string? ErrorMessage { get; set; }
+
+    private async Task OnChange(InputFileChangeEventArgs e)
+    {
+        ErrorMessage = null;
+        var file = e.File;
+        if (file is null)
+        {
+            ErrorMessage = "Debe seleccionar un archivo.";
+            return;
+        }
+
+        if (!string.Equals(file.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            ErrorMessage = "Solo se permiten archivos PDF.";
+            return;
+        }
+
+        if (file.Size > MaxFileSize)
+        {
+            ErrorMessage = "El archivo supera 20MB.";
+            return;
+        }
+
+        await FileSelected.InvokeAsync(file);
+    }
+}
