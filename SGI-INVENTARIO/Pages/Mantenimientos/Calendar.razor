@@ -1,0 +1,47 @@
+@page "/mantenimientos/calendario"
+@attribute [Authorize(Policy = "SoloLectura")]
+@inject IMantenimientosService MantenimientosService
+
+<h1>Calendario de mantenimientos</h1>
+
+<InputDate @bind-Value="Inicio" />
+<InputDate @bind-Value="Fin" />
+<button class="btn btn-primary" @onclick="Buscar">Buscar</button>
+
+<DataTable>
+    <Header>
+        <tr>
+            <th>Fecha</th>
+            <th>Activo</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+        </tr>
+    </Header>
+    <Body>
+        @foreach (var mantenimiento in Mantenimientos)
+        {
+            <tr>
+                <td>@mantenimiento.FechaProgramada.ToShortDateString()</td>
+                <td>@mantenimiento.Activo?.CodigoInventario</td>
+                <td>@mantenimiento.Tipo</td>
+                <td>@mantenimiento.Estado</td>
+            </tr>
+        }
+    </Body>
+</DataTable>
+
+@code {
+    private DateTime Inicio { get; set; } = DateTime.UtcNow.Date;
+    private DateTime Fin { get; set; } = DateTime.UtcNow.Date.AddDays(30);
+    private List<Mantenimiento> Mantenimientos { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Buscar();
+    }
+
+    private async Task Buscar()
+    {
+        Mantenimientos = (await MantenimientosService.ListarCalendarioAsync(Inicio, Fin)).ToList();
+    }
+}

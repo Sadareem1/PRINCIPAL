@@ -1,0 +1,41 @@
+@page "/asignaciones"
+@attribute [Authorize(Policy = "SoloLectura")]
+@inject IAsignacionesService AsignacionesService
+@inject NavigationManager Navigation
+
+<h1>Asignaciones activas</h1>
+
+<AuthorizeView Roles="Administrador,Tecnico">
+    <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/asignaciones/nueva")'>Nueva asignación</button>
+</AuthorizeView>
+
+<DataTable>
+    <Header>
+        <tr>
+            <th>Activo</th>
+            <th>Usuario</th>
+            <th>Fecha entrega</th>
+            <th>Responsable</th>
+        </tr>
+    </Header>
+    <Body>
+        @foreach (var asignacion in Asignaciones)
+        {
+            <tr>
+                <td>@asignacion.Activo?.CodigoInventario</td>
+                <td>@asignacion.UsuarioId</td>
+                <td>@asignacion.FechaEntrega.ToShortDateString()</td>
+                <td>@asignacion.ResponsableEntrega</td>
+            </tr>
+        }
+    </Body>
+</DataTable>
+
+@code {
+    private List<Asignacion> Asignaciones { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Asignaciones = (await AsignacionesService.ObtenerActivasAsync()).ToList();
+    }
+}

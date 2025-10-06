@@ -1,0 +1,36 @@
+@page "/mantenimientos"
+@attribute [Authorize(Policy = "SoloLectura")]
+@inject AppDbContext DbContext
+
+<h1>Mantenimientos</h1>
+
+<DataTable>
+    <Header>
+        <tr>
+            <th>Activo</th>
+            <th>Tipo</th>
+            <th>Programado</th>
+            <th>Estado</th>
+        </tr>
+    </Header>
+    <Body>
+        @foreach (var mantenimiento in Mantenimientos)
+        {
+            <tr>
+                <td>@mantenimiento.Activo?.CodigoInventario</td>
+                <td>@mantenimiento.Tipo</td>
+                <td>@mantenimiento.FechaProgramada.ToShortDateString()</td>
+                <td>@mantenimiento.Estado</td>
+            </tr>
+        }
+    </Body>
+</DataTable>
+
+@code {
+    private List<Mantenimiento> Mantenimientos { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Mantenimientos = await DbContext.Mantenimientos.Include(m => m.Activo).OrderByDescending(m => m.FechaProgramada).ToListAsync();
+    }
+}

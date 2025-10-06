@@ -1,0 +1,13 @@
+<table class="table table-striped">
+    <thead>
+        @Header
+    </thead>
+    <tbody>
+        @Body
+    </tbody>
+</table>
+
+@code {
+    [Parameter] public RenderFragment? Header { get; set; }
+    [Parameter] public RenderFragment? Body { get; set; }
+}

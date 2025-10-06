@@ -1,0 +1,71 @@
+@page "/solicitudes/nueva"
+@attribute [Authorize]
+@inject ISolicitudesService SolicitudesService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthState
+
+<h1>Nueva solicitud</h1>
+
+<EditForm Model="Modelo" OnValidSubmit="GuardarAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-grid">
+        <label>Tipo</label>
+        <InputSelect @bind-Value="Modelo.Tipo">
+            @foreach (TipoSolicitud tipo in Enum.GetValues(typeof(TipoSolicitud)))
+            {
+                <option value="@tipo">@tipo</option>
+            }
+        </InputSelect>
+
+        <label>Prioridad</label>
+        <InputSelect @bind-Value="Modelo.Prioridad">
+            @foreach (Prioridad prioridad in Enum.GetValues(typeof(Prioridad)))
+            {
+                <option value="@prioridad">@prioridad</option>
+            }
+        </InputSelect>
+
+        <label>Descripción</label>
+        <InputTextArea @bind-Value="Modelo.Descripcion" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Enviar</button>
+    <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="text-danger">@Error</div>
+}
+
+@code {
+    private Solicitud Modelo { get; set; } = new()
+    {
+        Prioridad = Prioridad.Media,
+        Tipo = TipoSolicitud.Equipo,
+        Descripcion = string.Empty
+    };
+
+    private string? Error { get; set; }
+
+    private async Task GuardarAsync()
+    {
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var userId = authState.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            Error = "Usuario no autenticado.";
+            return;
+        }
+
+        await SolicitudesService.CrearAsync(userId, Modelo.Tipo, Modelo.Prioridad, Modelo.Descripcion, Modelo.ActivoId);
+        Navigation.NavigateTo("/solicitudes");
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/solicitudes");
+    }
+}

@@ -1,0 +1,109 @@
+@page "/"
+@attribute [Authorize(Policy = "SoloLectura")]
+@inject IActivosService ActivosService
+@inject IContratosService ContratosService
+@inject IMantenimientosService MantenimientosService
+@inject ISolicitudesService SolicitudesService
+
+<h1>Panel de control</h1>
+
+<div class="kpi-grid">
+    <KpiCard Title="Activos registrados" Value="@TotalActivos" />
+    <KpiCard Title="Activos asignados" Value="@Asignados" />
+    <KpiCard Title="En mantenimiento" Value="@EnMantenimiento" />
+    <KpiCard Title="Solicitudes abiertas" Value="@SolicitudesAbiertas" />
+    <KpiCard Title="Contratos por vencer" Value="@ContratosPorVencer" />
+</div>
+
+<section>
+    <h2>Próximos vencimientos (30 días)</h2>
+    <DataTable>
+        <Header>
+            <tr>
+                <th>Contrato</th>
+                <th>Proveedor</th>
+                <th>Activo</th>
+                <th>Fecha fin</th>
+            </tr>
+        </Header>
+        <Body>
+            @if (ContratosVencimiento.Count == 0)
+            {
+                <tr><td colspan="4">No hay contratos próximos a vencer.</td></tr>
+            }
+            else
+            {
+                @foreach (var contrato in ContratosVencimiento)
+                {
+                    <tr>
+                        <td>@contrato.NumeroContrato</td>
+                        <td>@contrato.Proveedor</td>
+                        <td>@contrato.Activo?.CodigoInventario</td>
+                        <td>@contrato.FechaFin.ToShortDateString()</td>
+                    </tr>
+                }
+            }
+        </Body>
+    </DataTable>
+</section>
+
+<section>
+    <h2>Mantenimientos de esta semana</h2>
+    <DataTable>
+        <Header>
+            <tr>
+                <th>Activo</th>
+                <th>Tipo</th>
+                <th>Fecha programada</th>
+                <th>Estado</th>
+            </tr>
+        </Header>
+        <Body>
+            @if (MantenimientosSemana.Count == 0)
+            {
+                <tr><td colspan="4">No hay mantenimientos programados.</td></tr>
+            }
+            else
+            {
+                @foreach (var item in MantenimientosSemana)
+                {
+                    <tr>
+                        <td>@item.Activo?.CodigoInventario</td>
+                        <td>@item.Tipo</td>
+                        <td>@item.FechaProgramada.ToShortDateString()</td>
+                        <td>@item.Estado</td>
+                    </tr>
+                }
+            }
+        </Body>
+    </DataTable>
+</section>
+
+@code {
+    private int TotalActivos;
+    private int Asignados;
+    private int EnMantenimiento;
+    private int SolicitudesAbiertas;
+    private int ContratosPorVencer;
+    private List<Contrato> ContratosVencimiento { get; set; } = new();
+    private List<Mantenimiento> MantenimientosSemana { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var activos = await ActivosService.BuscarAsync(null, null, 1, 500);
+        TotalActivos = activos.Total;
+        Asignados = (await ActivosService.BuscarAsync(null, EstadoActivo.Asignado, 1, 1)).Total;
+        EnMantenimiento = (await ActivosService.BuscarAsync(null, EstadoActivo.Mantenimiento, 1, 1)).Total;
+
+        var contratos = await ContratosService.VencenAntesDeAsync(DateTime.UtcNow.Date.AddDays(30));
+        ContratosPorVencer = contratos.Count;
+        ContratosVencimiento = contratos.ToList();
+
+        var inicioSemana = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek);
+        var finSemana = inicioSemana.AddDays(7);
+        MantenimientosSemana = (await MantenimientosService.ListarCalendarioAsync(inicioSemana, finSemana)).ToList();
+
+        var solicitudes = await SolicitudesService.ListarAsync(null, EstadoSolicitud.Abierta);
+        SolicitudesAbiertas = solicitudes.Count;
+    }
+}

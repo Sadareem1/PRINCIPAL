@@ -1,0 +1,48 @@
+@page "/alertas"
+@attribute [Authorize(Policy = "SoloLectura")]
+@inject IAlertasService AlertasService
+
+<h1>Alertas</h1>
+
+<DataTable>
+    <Header>
+        <tr>
+            <th>Fecha</th>
+            <th>Mensaje</th>
+            <th>Criticidad</th>
+            <th>Estado</th>
+        </tr>
+    </Header>
+    <Body>
+        @foreach (var alerta in Alertas)
+        {
+            <tr>
+                <td>@alerta.FechaEvento.ToShortDateString()</td>
+                <td>@alerta.Mensaje</td>
+                <td>@alerta.Criticidad</td>
+                <td>
+                    @(alerta.Leida ? "Leída" : "Pendiente")
+                    @if (!alerta.Leida)
+                    {
+                        <button class="btn btn-link" @onclick="() => MarcarLeida(alerta.Id)">Marcar como leída</button>
+                    }
+                </td>
+            </tr>
+        }
+    </Body>
+</DataTable>
+
+@code {
+    private List<Alerta> Alertas { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Alertas = (await AlertasService.ObtenerPendientesAsync()).ToList();
+    }
+
+    private async Task MarcarLeida(int id)
+    {
+        await AlertasService.MarcarLeidaAsync(id);
+        Alertas = (await AlertasService.ObtenerPendientesAsync()).ToList();
+    }
+}

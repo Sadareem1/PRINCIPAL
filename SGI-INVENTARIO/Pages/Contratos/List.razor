@@ -1,0 +1,45 @@
+@page "/contratos"
+@attribute [Authorize(Policy = "SoloLectura")]
+@inject IContratosService ContratosService
+@inject NavigationManager Navigation
+
+<h1>Contratos</h1>
+
+<AuthorizeView Roles="Administrador,Tecnico">
+    <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/contratos/subir")'>Subir contrato</button>
+</AuthorizeView>
+
+<DataTable>
+    <Header>
+        <tr>
+            <th>Número</th>
+            <th>Proveedor</th>
+            <th>Activo</th>
+            <th>Fecha fin</th>
+            <th></th>
+        </tr>
+    </Header>
+    <Body>
+        @foreach (var contrato in Contratos)
+        {
+            <tr>
+                <td>@contrato.NumeroContrato</td>
+                <td>@contrato.Proveedor</td>
+                <td>@contrato.Activo?.CodigoInventario</td>
+                <td>@contrato.FechaFin.ToShortDateString()</td>
+                <td>
+                    <button class="btn btn-link" @onclick='() => Navigation.NavigateTo($"/contratos/{contrato.Id}")'>Detalles</button>
+                </td>
+            </tr>
+        }
+    </Body>
+</DataTable>
+
+@code {
+    private List<Contrato> Contratos { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Contratos = (await ContratosService.ListarAsync()).ToList();
+    }
+}

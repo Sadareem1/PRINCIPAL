@@ -1,0 +1,77 @@
+@page "/mantenimientos/nuevo"
+@attribute [Authorize(Policy = "GestionTecnica")]
+@inject IMantenimientosService MantenimientosService
+@inject IActivosService ActivosService
+@inject NavigationManager Navigation
+
+<h1>Programar mantenimiento</h1>
+
+@if (Activos is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <EditForm Model="Modelo" OnValidSubmit="GuardarAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-grid">
+            <label>Activo</label>
+            <InputSelect @bind-Value="Modelo.ActivoId">
+                @foreach (var activo in Activos)
+                {
+                    <option value="@activo.Id">@activo.CodigoInventario</option>
+                }
+            </InputSelect>
+
+            <label>Tipo</label>
+            <InputSelect @bind-Value="Modelo.Tipo">
+                @foreach (TipoMantenimiento tipo in Enum.GetValues(typeof(TipoMantenimiento)))
+                {
+                    <option value="@tipo">@tipo</option>
+                }
+            </InputSelect>
+
+            <label>Fecha programada</label>
+            <InputDate @bind-Value="Modelo.FechaProgramada" />
+
+            <label>Descripción</label>
+            <InputTextArea @bind-Value="Modelo.Descripcion" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+    </EditForm>
+}
+
+@code {
+    private Mantenimiento Modelo { get; set; } = new()
+    {
+        FechaProgramada = DateTime.UtcNow.Date,
+        Descripcion = string.Empty
+    };
+
+    private List<Activo>? Activos { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var activos = await ActivosService.BuscarAsync(null, null, 1, 100);
+        Activos = activos.Items.ToList();
+        if (Activos.Count > 0)
+        {
+            Modelo.ActivoId = Activos.First().Id;
+        }
+    }
+
+    private async Task GuardarAsync()
+    {
+        await MantenimientosService.ProgramarAsync(Modelo.ActivoId, Modelo.Tipo, Modelo.FechaProgramada, Modelo.Descripcion, Modelo.TecnicoId, Modelo.Costo);
+        Navigation.NavigateTo("/mantenimientos");
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/mantenimientos");
+    }
+}

@@ -1,0 +1,53 @@
+@page "/solicitudes/{Id:int}"
+@attribute [Authorize(Policy = "SoloLectura")]
+@inject ISolicitudesService SolicitudesService
+
+<h1>Detalle de solicitud</h1>
+
+@if (Modelo is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <dl>
+        <dt>Solicitante</dt>
+        <dd>@Modelo.SolicitanteId</dd>
+        <dt>Tipo</dt>
+        <dd>@Modelo.Tipo</dd>
+        <dt>Prioridad</dt>
+        <dd>@Modelo.Prioridad</dd>
+        <dt>Estado</dt>
+        <dd>@Modelo.Estado</dd>
+        <dt>Descripción</dt>
+        <dd>@Modelo.Descripcion</dd>
+    </dl>
+
+    <AuthorizeView Roles="Administrador,Tecnico">
+        <button class="btn btn-primary" @onclick="() => CambiarEstado(EstadoSolicitud.EnProceso)">Marcar en proceso</button>
+        <button class="btn btn-success" @onclick="() => CambiarEstado(EstadoSolicitud.Resuelta)">Marcar resuelta</button>
+        <button class="btn btn-secondary" @onclick="() => CambiarEstado(EstadoSolicitud.Cerrada)">Cerrar</button>
+    </AuthorizeView>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Solicitud? Modelo { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Modelo = await SolicitudesService.ObtenerPorIdAsync(Id);
+    }
+
+    private async Task CambiarEstado(EstadoSolicitud estado)
+    {
+        if (Modelo is null)
+        {
+            return;
+        }
+
+        await SolicitudesService.CambiarEstadoAsync(Modelo.Id, estado);
+        Modelo = await SolicitudesService.ObtenerPorIdAsync(Id);
+        StateHasChanged();
+    }
+}
