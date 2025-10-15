@@ -1,0 +1,92 @@
+@page "/activos/nuevo"
+
+@using SGI_INVENTARIO.Data
+@using SGI_INVENTARIO.Data.Entities
+@using SGI_INVENTARIO.Services
+@using Microsoft.EntityFrameworkCore
+@using System.Linq
+
+@attribute [Authorize(Policy = "GestionTecnica")]
+@inject IActivosService ActivosService
+@inject NavigationManager Navigation
+@inject AppDbContext DbContext
+
+<h1>Nuevo activo</h1>
+
+<EditForm Model="@Modelo" OnValidSubmit="GuardarAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-grid">
+        <label>Código inventario</label>
+        <InputText @bind-Value="Modelo.CodigoInventario" />
+
+        <label>Marca</label>
+        <InputText @bind-Value="Modelo.Marca" />
+
+        <label>Modelo</label>
+        <InputText @bind-Value="Modelo.Modelo" />
+
+        <label>Número de serie</label>
+        <InputText @bind-Value="Modelo.NumeroSerie" />
+
+        <label>Categoría</label>
+        <InputText @bind-Value="Modelo.Categoria" />
+
+        <label>Ubicación</label>
+        <InputText @bind-Value="Modelo.Ubicacion" />
+
+        <label>Área</label>
+        <InputSelect @bind-Value="Modelo.AreaId">
+            <option value="">Seleccione</option>
+            @foreach (var area in Areas)
+            {
+                <option value="@area.Id">@area.Nombre</option>
+            }
+        </InputSelect>
+
+        <label>Planta</label>
+        <InputSelect @bind-Value="Modelo.PlantaId">
+            <option value="">Seleccione</option>
+            @foreach (var planta in Plantas)
+            {
+                <option value="@planta.Id">@planta.Nombre</option>
+            }
+        </InputSelect>
+
+        <label>Notas</label>
+        <InputTextArea @bind-Value="Modelo.Notas" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar</button>
+    <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+</EditForm>
+
+@code {
+    private Activo Modelo { get; set; } = new()
+    {
+        Estado = EstadoActivo.Operativo,
+        FechaRegistro = DateTime.UtcNow,
+        ActivoEnSistema = true   // <- nombre correcto según tu entidad
+    };
+
+    private List<Area> Areas { get; set; } = new();
+    private List<Planta> Plantas { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Areas = await DbContext.Areas.Where(a => a.Activo).ToListAsync();
+        Plantas = await DbContext.Plantas.Where(p => p.Activo).ToListAsync();
+    }
+
+    private async Task GuardarAsync()
+    {
+        await ActivosService.CrearAsync(Modelo);
+        Navigation.NavigateTo("/activos");
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/activos");
+    }
+}

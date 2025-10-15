@@ -1,0 +1,110 @@
+@page "/contratos/subir"
+@attribute [Authorize(Policy = "GestionTecnica")]
+@inject IContratosService ContratosService
+@inject NavigationManager Navigation
+@inject AppDbContext DbContext
+@inject AuthenticationStateProvider AuthState
+
+<h1>Subir contrato</h1>
+
+<EditForm Model="Modelo" OnValidSubmit="SubirAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-grid">
+        <label>Activo</label>
+        <InputSelect @bind-Value="Modelo.ActivoId">
+            <option value="">Sin asignar</option>
+            @foreach (var activo in Activos)
+            {
+                <option value="@activo.Id">@activo.CodigoInventario</option>
+            }
+        </InputSelect>
+
+        <label>Proveedor</label>
+        <InputText @bind-Value="Modelo.Proveedor" />
+
+        <label>Número de contrato</label>
+        <InputText @bind-Value="Modelo.NumeroContrato" />
+
+        <label>Fecha inicio</label>
+        <InputDate @bind-Value="Modelo.FechaInicio" />
+
+        <label>Fecha fin</label>
+        <InputDate @bind-Value="Modelo.FechaFin" />
+
+        <label>Tipo</label>
+        <InputSelect @bind-Value="Modelo.Tipo">
+            @foreach (TipoContrato tipo in Enum.GetValues(typeof(TipoContrato)))
+            {
+                <option value="@tipo">@tipo</option>
+            }
+        </InputSelect>
+
+        <label>Archivo (PDF)</label>
+        <FileUploader FileSelected="OnFileSelected" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Subir</button>
+    <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="text-danger">@Error</div>
+}
+
+@code {
+    private Contrato Modelo { get; set; } = new()
+    {
+        FechaInicio = DateTime.UtcNow.Date,
+        FechaFin = DateTime.UtcNow.Date.AddMonths(12),
+        Tipo = TipoContrato.Garantia
+    };
+
+    private List<Activo> Activos { get; set; } = new();
+    private IBrowserFile? ArchivoSeleccionado { get; set; }
+    private string? Error { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Activos = await DbContext.Activos.OrderBy(a => a.CodigoInventario).ToListAsync();
+    }
+
+    private async Task OnFileSelected(IBrowserFile file)
+    {
+        ArchivoSeleccionado = file;
+    }
+
+    private async Task SubirAsync()
+    {
+        if (ArchivoSeleccionado is null)
+        {
+            Error = "Debe seleccionar un archivo PDF.";
+            return;
+        }
+
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var userId = authState.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            Error = "Usuario no autenticado.";
+            return;
+        }
+
+        await using var stream = ArchivoSeleccionado.OpenReadStream(20 * 1024 * 1024);
+        var formFile = new FormFile(stream, 0, ArchivoSeleccionado.Size, "contrato", ArchivoSeleccionado.Name)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = ArchivoSeleccionado.ContentType
+        };
+
+        await ContratosService.SubirPdfAsync(Modelo.ActivoId, Modelo.Proveedor, Modelo.NumeroContrato, Modelo.FechaInicio, Modelo.FechaFin, Modelo.Tipo, formFile, userId);
+        Navigation.NavigateTo("/contratos");
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/contratos");
+    }
+}

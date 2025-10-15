@@ -1,0 +1,46 @@
+@using Microsoft.AspNetCore.Components.Web
+@inherits LayoutComponentBase
+
+<PageTitle>SGI Inventario</PageTitle>
+
+<HeadContent>
+    <!-- Radzen CSS (tema base + estándar) -->
+    <link rel="stylesheet" href="/_content/Radzen.Blazor/css/material-base.css" />
+    <link rel="stylesheet" href="/_content/Radzen.Blazor/css/standard.css" />
+
+    <!-- Tu CSS (al final para que tenga prioridad sobre Radzen si hay conflictos) -->
+    <link rel="stylesheet" href="/app.css" />
+
+    <!-- JS de Radzen (necesario para algunos componentes) -->
+    <script src="/_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+</HeadContent>
+
+<!-- Envolvemos TODO con RadzenLayout sin tocar tu estructura -->
+<RadzenLayout>
+    <RadzenSidebar>
+        <RadzenPanelMenu>
+            <RadzenPanelMenuItem Text="Dashboard" Path="/" />
+            <RadzenPanelMenuItem Text="Activos" Path="/activos" />
+            <RadzenPanelMenuItem Text="Contratos" Path="/contratos" />
+            <RadzenPanelMenuItem Text="Asignaciones" Path="/asignaciones" />
+            <RadzenPanelMenuItem Text="Mantenimientos" Path="/mantenimientos" />
+            <RadzenPanelMenuItem Text="Solicitudes" Path="/solicitudes" />
+            <RadzenPanelMenuItem Text="Reportes" Path="/reportes" />
+            <RadzenPanelMenuItem Text="Alertas" Path="/alertas" />
+
+            <AuthorizeView Roles="Administrador">
+                <RadzenPanelMenuItem Text="Usuarios" Path="/usuarios" />
+            </AuthorizeView>
+
+            <RadzenPanelMenuItem Text="Mi cuenta" Path="/Identity/Account/Manage" />
+            <RadzenPanelMenuItem Text="Salir" Path="/Identity/Account/Logout" />
+        </RadzenPanelMenu>
+    </RadzenSidebar>
+
+    <RadzenBody>
+        <div class="content">
+            @Body
+        </div>
+    </RadzenBody>
+</RadzenLayout>
+

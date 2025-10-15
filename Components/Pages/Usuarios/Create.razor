@@ -1,0 +1,64 @@
+@page "/usuarios/nuevo"
+@attribute [Authorize(Policy = "RequireAdmin")]
+@inject UserManager<AppUser> UserManager
+@inject NavigationManager Navigation
+
+<h1>Nuevo usuario</h1>
+
+<EditForm Model="Modelo" OnValidSubmit="GuardarAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-grid">
+        <label>Nombres</label>
+        <InputText @bind-Value="Modelo.Nombres" />
+
+        <label>Apellidos</label>
+        <InputText @bind-Value="Modelo.Apellidos" />
+
+        <label>Correo</label>
+        <InputText @bind-Value="Modelo.Email" />
+
+        <label>Rol</label>
+        <InputSelect @bind-Value="RolSeleccionado">
+            <option value="Administrador">Administrador</option>
+            <option value="Tecnico">Tecnico</option>
+            <option value="Consulta">Consulta</option>
+        </InputSelect>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Crear</button>
+    <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="text-danger">@Error</div>
+}
+
+@code {
+    private AppUser Modelo { get; set; } = new();
+    private string RolSeleccionado { get; set; } = "Consulta";
+    private string? Error { get; set; }
+
+    private async Task GuardarAsync()
+    {
+        Modelo.UserName = Modelo.Email;
+        Modelo.Rol = RolSeleccionado;
+        Modelo.Estado = true;
+        var result = await UserManager.CreateAsync(Modelo, "P@ssw0rd!");
+        if (!result.Succeeded)
+        {
+            Error = string.Join("; ", result.Errors.Select(e => e.Description));
+            return;
+        }
+
+        await UserManager.AddToRoleAsync(Modelo, RolSeleccionado);
+        Navigation.NavigateTo("/usuarios");
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/usuarios");
+    }
+}
