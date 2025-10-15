@@ -1,0 +1,67 @@
+@page "/reportes"
+@attribute [Authorize(Policy = "SoloLectura")]
+@inject IActivosService ActivosService
+@inject IMantenimientosService MantenimientosService
+@inject IJSRuntime Js
+
+<h1>Reportes</h1>
+
+<section>
+    <h2>Activos por estado</h2>
+    <ul>
+        @foreach (var kvp in ActivosPorEstado)
+        {
+            <li>@kvp.Key: @kvp.Value</li>
+        }
+    </ul>
+    <button class="btn btn-primary" @onclick="ExportarActivos">Exportar CSV</button>
+</section>
+
+<section>
+    <h2>Mantenimientos próximos 30 días</h2>
+    <ul>
+        @foreach (var mantenimiento in MantenimientosProximos)
+        {
+            <li>@mantenimiento.FechaProgramada.ToShortDateString() - @mantenimiento.Activo?.CodigoInventario - @mantenimiento.Estado</li>
+        }
+    </ul>
+    <button class="btn btn-primary" @onclick="ExportarMantenimientos">Exportar CSV</button>
+</section>
+
+@code {
+    private Dictionary<EstadoActivo, int> ActivosPorEstado { get; set; } = new();
+    private List<Mantenimiento> MantenimientosProximos { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var activos = await ActivosService.BuscarAsync(null, null, 1, 500);
+        ActivosPorEstado = activos.Items.GroupBy(a => a.Estado).ToDictionary(g => g.Key, g => g.Count());
+        var hoy = DateTime.UtcNow.Date;
+        var futuros = await MantenimientosService.ListarCalendarioAsync(hoy, hoy.AddDays(30));
+        MantenimientosProximos = futuros.ToList();
+    }
+
+    private async Task ExportarActivos()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Estado,Cantidad");
+        foreach (var kvp in ActivosPorEstado)
+        {
+            sb.AppendLine($"{kvp.Key},{kvp.Value}");
+        }
+
+        await Js.InvokeVoidAsync("downloadFile", "activos.csv", sb.ToString());
+    }
+
+    private async Task ExportarMantenimientos()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Fecha,Activo,Estado");
+        foreach (var m in MantenimientosProximos)
+        {
+            sb.AppendLine($"{m.FechaProgramada:yyyy-MM-dd},{m.Activo?.CodigoInventario},{m.Estado}");
+        }
+
+        await Js.InvokeVoidAsync("downloadFile", "mantenimientos.csv", sb.ToString());
+    }
+}
